@@ -17,7 +17,7 @@
     --sidebar-w: 220px;
   }
 
-  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; display:flex; overflow:hidden; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; display:flex; }
 
   body::before {
     content:''; position:fixed; inset:0;
@@ -47,7 +47,7 @@
   .btn-logout:hover { border-color:var(--danger); color:var(--danger); }
 
   /* ── Main ── */
-  .main { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; min-height:100vh; overflow-y:auto; position:relative; z-index:1; }
+  .main { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; min-height:100vh; position:relative; z-index:1; }
   .page { display:none; padding:36px; animation:fadeUp .3s ease both; }
   .page.active { display:block; }
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
@@ -186,6 +186,86 @@
   .divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
   .two-col { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+
+  /* ── AI Engine ── */
+  .ai-header-row { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; }
+  .ai-status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--muted); margin-right:6px; }
+  .ai-status-dot.live { background:var(--success); box-shadow:0 0 6px var(--success); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .ai-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+  .ai-grid-3 { grid-template-columns:1fr 1fr 1fr; }
+
+  .ai-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .ai-card-head { display:flex; align-items:center; gap:10px; padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface2); }
+  .ai-card-icon { font-size:18px; }
+  .ai-card-title { font-family:'DM Mono',monospace; font-size:10px; color:var(--accent); letter-spacing:.2em; text-transform:uppercase; }
+  .ai-card-body { padding:18px 20px; }
+
+  /* Prediction cards */
+  .pred-list { display:flex; flex-direction:column; gap:10px; }
+  .pred-item { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; background:var(--bg); border:1px solid var(--border); border-radius:3px; transition:border-color .2s; }
+  .pred-item:hover { border-color:var(--border2); }
+  .pred-priority { width:6px; flex-shrink:0; border-radius:2px; align-self:stretch; min-height:40px; }
+  .pred-priority.high   { background:var(--danger); }
+  .pred-priority.medium { background:var(--warning); }
+  .pred-priority.low    { background:var(--success); }
+  .pred-content { flex:1; min-width:0; }
+  .pred-name { font-size:13px; font-weight:500; color:var(--text); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pred-reason { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); line-height:1.4; }
+  .pred-qty { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--accent); white-space:nowrap; letter-spacing:.04em; }
+  .pred-qty-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:.1em; text-align:right; margin-top:1px; }
+
+  /* Trend pills */
+  .trend-grid { display:flex; flex-direction:column; gap:8px; }
+  .trend-row { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--bg); border-radius:3px; border:1px solid var(--border); }
+  .trend-name { font-size:13px; color:var(--text); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .trend-arrow { font-family:'DM Mono',monospace; font-size:11px; font-weight:600; margin-left:10px; white-space:nowrap; }
+  .trend-arrow.up   { color:var(--success); }
+  .trend-arrow.down { color:var(--danger); }
+
+  /* Stock risk bars */
+  .risk-list { display:flex; flex-direction:column; gap:10px; }
+  .risk-item { padding:10px 14px; background:var(--bg); border:1px solid var(--border); border-radius:3px; }
+  .risk-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .risk-name { font-size:13px; color:var(--text); }
+  .risk-weeks { font-family:'DM Mono',monospace; font-size:11px; }
+  .risk-bar-bg { background:var(--border); border-radius:2px; height:4px; }
+  .risk-bar-fill { height:4px; border-radius:2px; transition:width .6s ease; }
+
+  /* Category chart */
+  .cat-chart { display:flex; flex-direction:column; gap:8px; }
+  .cat-bar-row { display:grid; grid-template-columns:110px 1fr 60px; align-items:center; gap:10px; }
+  .cat-bar-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cat-bar-bg { background:var(--border); border-radius:2px; height:6px; }
+  .cat-bar-fill { height:6px; border-radius:2px; background:var(--accent); opacity:.7; transition:width .6s ease; }
+  .cat-bar-val { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); text-align:right; }
+
+  /* Summary box */
+  .ai-summary { padding:16px 20px; background:rgba(200,240,96,.05); border:1px solid rgba(200,240,96,.15); border-radius:3px; font-family:'DM Mono',monospace; font-size:12px; color:var(--text); line-height:1.7; }
+  .ai-summary-label { font-size:9px; color:var(--accent); letter-spacing:.2em; text-transform:uppercase; margin-bottom:8px; }
+
+  /* Sparkline area */
+  .spark-canvas { width:100%; height:64px; display:block; }
+
+  /* Urgency badge */
+  .urgency-bar { display:flex; align-items:center; gap:10px; padding:10px 20px; border-top:1px solid var(--border); }
+  .urgency-label { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:.15em; text-transform:uppercase; }
+  .urgency-badge { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:.1em; padding:3px 12px; border-radius:2px; }
+  .urgency-badge.high   { background:rgba(240,96,96,.15); color:var(--danger); }
+  .urgency-badge.medium { background:rgba(240,192,96,.15); color:var(--warning); }
+  .urgency-badge.low    { background:rgba(96,240,154,.12); color:var(--success); }
+
+  /* Skeleton shimmer */
+  .skel { background:linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:3px; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .btn-ai { background:var(--accent); color:var(--bg); border:none; border-radius:3px; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:.1em; padding:11px 28px; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-ai:hover:not(:disabled) { background:#d6f575; }
+  .btn-ai:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-ai-refresh { background:transparent; border:1px solid var(--border2); color:var(--muted); font-family:'DM Mono',monospace; font-size:11px; padding:8px 16px; border-radius:3px; cursor:pointer; transition:all .15s; }
+  .btn-ai-refresh:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .btn-ai-refresh:disabled { opacity:.4; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -206,6 +286,8 @@
     <div class="nav-section-label" style="margin-top:8px">Procurement</div>
     <div class="nav-item" onclick="showPage('suppliers',this)"><span class="nav-icon">🏭</span> Suppliers</div>
     <div class="nav-item" onclick="showPage('orders',this)"><span class="nav-icon">📋</span> Orders</div>
+    <div class="nav-section-label" style="margin-top:8px">Intelligence</div>
+    <div class="nav-item" onclick="showPage('ai',this);loadAIPage()"><span class="nav-icon">🧠</span> AI Demand Engine</div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
@@ -418,6 +500,152 @@
         <thead><tr><th>ID</th><th>Supplier</th><th>Date</th><th class="right">Total</th><th class="center">Status</th><th class="right">Actions</th></tr></thead>
         <tbody id="orders-body"><tr><td colspan="6"><div class="empty-state"><div class="empty-text">Loading...</div></div></td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- AI DEMAND ENGINE -->
+  <div class="page" id="page-ai">
+    <div class="ai-header-row">
+      <div>
+        <div class="page-title">AI Demand Engine</div>
+        <div class="page-subtitle">// Powered by Claude · Predictive Intelligence</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span id="ai-last-run" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">Not run yet</span>
+        <button class="btn-ai-refresh" id="ai-refresh-btn" onclick="refreshAnalytics()" disabled>↻ Refresh Data</button>
+        <button class="btn-ai" id="ai-run-btn" onclick="runAIPrediction()">🧠 Run Prediction</button>
+      </div>
+    </div>
+
+    <!-- Top stat strip from analytics -->
+    <div class="ai-grid ai-grid-3" id="ai-stat-strip" style="margin-bottom:20px">
+      <div class="ai-card" style="border-top:2px solid var(--accent)">
+        <div class="ai-card-body" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="stat-label">Top Product (60d)</div>
+            <div id="ai-top-product" class="stat-value" style="font-size:22px">—</div>
+          </div>
+          <div style="font-size:28px;opacity:.3">📦</div>
+        </div>
+      </div>
+      <div class="ai-card" style="border-top:2px solid var(--warning)">
+        <div class="ai-card-body" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="stat-label">At-Risk Products</div>
+            <div id="ai-risk-count" class="stat-value" style="font-size:22px;color:var(--warning)">—</div>
+          </div>
+          <div style="font-size:28px;opacity:.3">⚠️</div>
+        </div>
+      </div>
+      <div class="ai-card" style="border-top:2px solid var(--success)">
+        <div class="ai-card-body" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="stat-label">Rising Trends</div>
+            <div id="ai-rising-count" class="stat-value" style="font-size:22px;color:var(--success)">—</div>
+          </div>
+          <div style="font-size:28px;opacity:.3">📈</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 1: Stock risk + Category volume -->
+    <div class="ai-grid" style="margin-bottom:20px">
+      <!-- Stock Risk -->
+      <div class="ai-card">
+        <div class="ai-card-head">
+          <span class="ai-card-icon">🔴</span>
+          <span class="ai-card-title">Likely to Run Out</span>
+        </div>
+        <div class="ai-card-body">
+          <div class="risk-list" id="ai-risk-list">
+            <div class="skel" style="height:48px"></div>
+            <div class="skel" style="height:48px"></div>
+            <div class="skel" style="height:48px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Category Volume -->
+      <div class="ai-card">
+        <div class="ai-card-head">
+          <span class="ai-card-icon">📊</span>
+          <span class="ai-card-title">Category Volume (30d)</span>
+        </div>
+        <div class="ai-card-body">
+          <div class="cat-chart" id="ai-cat-chart">
+            <div class="skel" style="height:22px"></div>
+            <div class="skel" style="height:22px"></div>
+            <div class="skel" style="height:22px"></div>
+            <div class="skel" style="height:22px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Daily sparkline -->
+    <div class="ai-card" style="margin-bottom:20px">
+      <div class="ai-card-head">
+        <span class="ai-card-icon">📅</span>
+        <span class="ai-card-title">Daily Order Volume — Last 14 Days</span>
+      </div>
+      <div class="ai-card-body" style="padding:12px 20px 20px">
+        <canvas id="ai-daily-chart" class="spark-canvas" height="80" style="height:80px"></canvas>
+      </div>
+    </div>
+
+    <!-- Row 3: Trend monitor -->
+    <div class="ai-grid" style="margin-bottom:20px">
+      <div class="ai-card">
+        <div class="ai-card-head"><span class="ai-card-icon">📈</span><span class="ai-card-title">Trending Up (30d vs prev)</span></div>
+        <div class="ai-card-body"><div class="trend-grid" id="ai-trend-up"><div class="skel" style="height:36px"></div><div class="skel" style="height:36px"></div></div></div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-head"><span class="ai-card-icon">📉</span><span class="ai-card-title">Trending Down (30d vs prev)</span></div>
+        <div class="ai-card-body"><div class="trend-grid" id="ai-trend-down"><div class="skel" style="height:36px"></div><div class="skel" style="height:36px"></div></div></div>
+      </div>
+    </div>
+
+    <!-- Row 4: AI Predictions (shown after running) -->
+    <div id="ai-predictions-section" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em">AI Predictions</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;padding:4px 10px;border:1px solid rgba(200,240,96,.3);border-radius:2px;background:rgba(200,240,96,.05)">Claude Generated</div>
+        <div id="ai-urgency-wrap"></div>
+      </div>
+
+      <!-- Summary -->
+      <div class="ai-summary" id="ai-summary-box" style="margin-bottom:20px">
+        <div class="ai-summary-label">// Warehouse Health Summary</div>
+        <div id="ai-summary-text">—</div>
+      </div>
+
+      <!-- Predictions + Trending -->
+      <div class="ai-grid" style="margin-bottom:20px">
+        <div class="ai-card">
+          <div class="ai-card-head"><span class="ai-card-icon">🤖</span><span class="ai-card-title">Restock Recommendations</span></div>
+          <div class="ai-card-body"><div class="pred-list" id="ai-pred-list"></div></div>
+        </div>
+        <div class="ai-card">
+          <div class="ai-card-head"><span class="ai-card-icon">🔥</span><span class="ai-card-title">AI — Trending Now</span></div>
+          <div class="ai-card-body" style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--success);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px">▲ Rising Demand</div>
+              <div id="ai-pred-up" class="trend-grid"></div>
+            </div>
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--danger);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px">▼ Falling Demand</div>
+              <div id="ai-pred-down" class="trend-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state before first run -->
+    <div id="ai-empty-state" style="text-align:center;padding:48px 24px;background:var(--surface);border:1px solid var(--border);border-radius:4px;border-style:dashed">
+      <div style="font-size:48px;opacity:.3;margin-bottom:16px">🧠</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">No Predictions Yet</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:20px">Click "Run Prediction" above to send your order data to Claude<br>and get AI-powered restock suggestions and demand forecasts.</div>
+      <button class="btn-ai" onclick="runAIPrediction()">🧠 Run Prediction</button>
     </div>
   </div>
 
@@ -1063,6 +1291,265 @@ function fmtShort(n){
   return fmt(n);
 }
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+
+// ── AI Engine ─────────────────────────────────────────────────────────────────
+let aiAnalyticsData = null;
+let aiDailyChart    = null;
+let aiPageLoaded    = false;
+
+async function loadAIPage() {
+  if (aiPageLoaded) return;
+  aiPageLoaded = true;
+  await refreshAnalytics();
+}
+
+async function refreshAnalytics() {
+  const btn = document.getElementById("ai-refresh-btn");
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/ai/analytics`, { headers: h() });
+    if (!r.ok) { showToast("Analytics fetch failed","error"); return; }
+    aiAnalyticsData = await r.json();
+    renderAnalytics(aiAnalyticsData);
+    if (btn) btn.disabled = false;
+  } catch { showToast("Cannot reach server","error"); }
+}
+
+function renderAnalytics(data) {
+  // Stat strip
+  if (data.topProducts?.length) {
+    document.getElementById("ai-top-product").textContent =
+      data.topProducts[0].name.split(" ").slice(0,2).join(" ");
+  }
+  document.getElementById("ai-risk-count").textContent = data.stockRisk?.length ?? "—";
+
+  const rising = (data.trendData || []).filter(p => p.recent_30 > p.prev_30);
+  document.getElementById("ai-rising-count").textContent = rising.length;
+
+  // Stock risk list
+  const riskEl = document.getElementById("ai-risk-list");
+  if (!data.stockRisk?.length) {
+    riskEl.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);padding:12px 0">No at-risk products 🎉</div>`;
+  } else {
+    const maxDemand = Math.max(...data.stockRisk.map(p => p.avg_weekly_demand));
+    riskEl.innerHTML = data.stockRisk.slice(0,6).map(p => {
+      const weeks = p.avg_weekly_demand > 0 ? (p.current_stock / p.avg_weekly_demand).toFixed(1) : "∞";
+      const pct   = Math.min(100, (p.current_stock / (p.avg_weekly_demand * 4)) * 100);
+      const color = pct < 30 ? "var(--danger)" : pct < 60 ? "var(--warning)" : "var(--success)";
+      const weeksColor = pct < 30 ? "var(--danger)" : pct < 60 ? "var(--warning)" : "var(--success)";
+      return `<div class="risk-item">
+        <div class="risk-top">
+          <span class="risk-name">${esc(p.name)}</span>
+          <span class="risk-weeks" style="color:${weeksColor}">${weeks}w left</span>
+        </div>
+        <div class="risk-bar-bg">
+          <div class="risk-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">
+          <span>${p.current_stock} in stock</span>
+          <span>${p.avg_weekly_demand}/wk demand</span>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // Category chart
+  const catEl = document.getElementById("ai-cat-chart");
+  if (data.categoryVolume?.length) {
+    const maxQty = Math.max(...data.categoryVolume.map(c => c.total_qty));
+    catEl.innerHTML = data.categoryVolume.map(c => {
+      const pct = Math.round((c.total_qty / maxQty) * 100);
+      return `<div class="cat-bar-row">
+        <div class="cat-bar-label" title="${esc(c.category)}">${esc(c.category)}</div>
+        <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${pct}%"></div></div>
+        <div class="cat-bar-val">${Number(c.total_qty).toLocaleString("en-IN")}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // Trend lists
+  const allTrends = (data.trendData || [])
+    .map(p => ({ ...p, delta: p.recent_30 - p.prev_30, pct: p.prev_30 > 0 ? ((p.recent_30 - p.prev_30)/p.prev_30*100).toFixed(0) : null }))
+    .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+  const upEl   = document.getElementById("ai-trend-up");
+  const downEl = document.getElementById("ai-trend-down");
+  const ups    = allTrends.filter(p => p.delta > 0).slice(0,5);
+  const downs  = allTrends.filter(p => p.delta < 0).slice(0,5);
+
+  upEl.innerHTML = ups.length ? ups.map(p =>
+    `<div class="trend-row">
+      <span class="trend-name">${esc(p.name)}</span>
+      <span class="trend-arrow up">▲ +${Number(p.delta).toLocaleString("en-IN")}${p.pct ? ` (${p.pct}%)` : ""}</span>
+    </div>`).join("") :
+    `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">No rising trends</div>`;
+
+  downEl.innerHTML = downs.length ? downs.map(p =>
+    `<div class="trend-row">
+      <span class="trend-name">${esc(p.name)}</span>
+      <span class="trend-arrow down">▼ ${Number(p.delta).toLocaleString("en-IN")}${p.pct ? ` (${p.pct}%)` : ""}</span>
+    </div>`).join("") :
+    `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">No falling trends</div>`;
+
+  // Daily sparkline chart
+  if (data.dailyVolume?.length) renderDailyChart(data.dailyVolume);
+}
+
+function renderDailyChart(rows) {
+  const canvas = document.getElementById("ai-daily-chart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.offsetWidth || 600;
+  const H = 80;
+  canvas.width  = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const vals   = rows.map(r => r.total_qty);
+  const labels = rows.map(r => { const d = new Date(r.day); return `${d.getDate()}/${d.getMonth()+1}`; });
+  const maxV   = Math.max(...vals) || 1;
+  const pad    = { t:10, r:10, b:28, l:40 };
+  const cW     = W - pad.l - pad.r;
+  const cH     = H - pad.t - pad.b;
+  const step   = cW / (vals.length - 1 || 1);
+
+  // Grid
+  ctx.strokeStyle = "rgba(200,240,96,0.06)";
+  ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(f => {
+    const y = pad.t + cH * (1 - f);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cW, y); ctx.stroke();
+  });
+
+  // Area fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + cH);
+  grad.addColorStop(0, "rgba(200,240,96,0.2)");
+  grad.addColorStop(1, "rgba(200,240,96,0.0)");
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const x = pad.l + i * step;
+    const y = pad.t + cH * (1 - v / maxV);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad.l + (vals.length - 1) * step, pad.t + cH);
+  ctx.lineTo(pad.l, pad.t + cH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = "#c8f060";
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  vals.forEach((v, i) => {
+    const x = pad.l + i * step;
+    const y = pad.t + cH * (1 - v / maxV);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Dots
+  vals.forEach((v, i) => {
+    const x = pad.l + i * step;
+    const y = pad.t + cH * (1 - v / maxV);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#c8f060";
+    ctx.fill();
+  });
+
+  // Labels (every other one if crowded)
+  ctx.fillStyle = "rgba(107,123,112,0.9)";
+  ctx.font = `${10 * window.devicePixelRatio / window.devicePixelRatio}px 'DM Mono', monospace`;
+  ctx.textAlign = "center";
+  const skip = vals.length > 10 ? 2 : 1;
+  labels.forEach((l, i) => {
+    if (i % skip !== 0 && i !== labels.length - 1) return;
+    ctx.fillText(l, pad.l + i * step, H - 6);
+  });
+
+  // Y-axis label
+  ctx.textAlign = "right";
+  ctx.fillText(maxV, pad.l - 4, pad.t + 4);
+}
+
+async function runAIPrediction() {
+  const btn = document.getElementById("ai-run-btn");
+  btn.disabled = true;
+  btn.textContent = "⏳ Thinking...";
+  showToast("Sending data to Claude AI...","success");
+
+  try {
+    const r = await fetch(`${API}/ai/predict`, { method:"POST", headers:h() });
+    if (!r.ok) {
+      const d = await r.json();
+      showToast(d.error || "AI prediction failed","error");
+      return;
+    }
+    const data = await r.json();
+    renderAIPredictions(data);
+    const ts = new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+    document.getElementById("ai-last-run").textContent = `Last run: ${ts}`;
+    showToast("AI predictions generated!","success");
+  } catch(e) {
+    showToast("AI service error: " + e.message,"error");
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = "🧠 Run Prediction";
+}
+
+function renderAIPredictions(data) {
+  document.getElementById("ai-empty-state").style.display = "none";
+  document.getElementById("ai-predictions-section").style.display = "block";
+
+  // Summary
+  document.getElementById("ai-summary-text").textContent = data.summary || "—";
+
+  // Urgency
+  const urg = (data.restock_urgency || "medium").toLowerCase();
+  document.getElementById("ai-urgency-wrap").innerHTML =
+    `<span class="urgency-badge ${urg}">${urg.toUpperCase()} URGENCY</span>`;
+
+  // Predictions list
+  const predEl = document.getElementById("ai-pred-list");
+  if (!data.predictions?.length) {
+    predEl.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">No recommendations</div>`;
+  } else {
+    predEl.innerHTML = data.predictions.map(p => {
+      const pri = (p.priority || "medium").toLowerCase();
+      return `<div class="pred-item">
+        <div class="pred-priority ${pri}"></div>
+        <div class="pred-content">
+          <div class="pred-name">${esc(p.product)}</div>
+          <div class="pred-reason">${esc(p.reason || "")}</div>
+          <div style="margin-top:4px">
+            <span class="badge badge-${pri === "high" ? "low" : pri === "medium" ? "medium" : "high"}" style="font-size:9px;padding:2px 7px">${pri.toUpperCase()}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-left:6px">${esc(p.action || "restock")}</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="pred-qty">${Number(p.suggested_quantity || 0).toLocaleString("en-IN")}</div>
+          <div class="pred-qty-label">units</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // AI trending lists
+  const upEl   = document.getElementById("ai-pred-up");
+  const downEl = document.getElementById("ai-pred-down");
+
+  upEl.innerHTML = (data.trending_up || []).length
+    ? data.trending_up.map(n => `<div class="trend-row"><span class="trend-name">${esc(n)}</span><span class="trend-arrow up">▲ Rising</span></div>`).join("")
+    : `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">None identified</div>`;
+
+  downEl.innerHTML = (data.trending_down || []).length
+    ? data.trending_down.map(n => `<div class="trend-row"><span class="trend-name">${esc(n)}</span><span class="trend-arrow down">▼ Falling</span></div>`).join("")
+    : `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">None identified</div>`;
+}
 
 let toastTimer;
 function showToast(msg,type="success"){
