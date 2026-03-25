@@ -6,6 +6,11 @@ const path    = require("path");
 
 const SECRET = "warehouse_secret";
 
+// ─── Groq Configuration ───────────────────────────────────────────────────────
+// Replace with your actual key from https://console.groq.com/
+const GROQ_API_KEY = "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"; 
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -25,7 +30,6 @@ db.connect(err => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Run a query wrapped in a Promise
 function query(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.query(sql, params, (err, result) => {
@@ -58,7 +62,7 @@ const auth = [authenticate, adminOnly];
 
 // ─── Auth Routes ──────────────────────────────────────────────────────────────
 
-app.get("/", (req, res) => res.send("Warehouse Backend Running"));
+app.get("/", (req, res) => res.send("Warehouse Backend Running with Groq AI"));
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
@@ -104,7 +108,6 @@ app.post("/categories", ...auth, async (req, res) => {
 
 app.delete("/categories/:id", ...auth, async (req, res) => {
   try {
-    // Check if any product uses this category
     const used = await query("SELECT id FROM products WHERE category_id = ?", [req.params.id]);
     if (used.length)
       return res.status(400).json({ error: `Cannot delete — ${used.length} product(s) use this category` });
@@ -155,9 +158,30 @@ app.put("/products/:id", ...auth, async (req, res) => {
 
 app.delete("/products/:id", ...auth, async (req, res) => {
   try {
+    const orderRefs = await query(
+      "SELECT id FROM order_items WHERE product_id = ?",
+      [req.params.id]
+    );
+    if (orderRefs.length)
+      return res.status(400).json({
+        error: `Cannot delete — this product exists in ${orderRefs.length} order(s)`
+      });
+
+    const movementRefs = await query(
+      "SELECT id FROM stock_movements WHERE product_id = ?",
+      [req.params.id]
+    );
+    if (movementRefs.length)
+      return res.status(400).json({
+        error: `Cannot delete — this product has ${movementRefs.length} stock movement record(s)`
+      });
+
     await query("DELETE FROM products WHERE id = ?", [req.params.id]);
     res.json({ message: "Product deleted" });
-  } catch { res.status(500).json({ error: "DB error" }); }
+  } catch (err) {
+    console.error("Delete product error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Suppliers ────────────────────────────────────────────────────────────────
@@ -280,24 +304,19 @@ app.patch("/orders/:id/status", ...auth, async (req, res) => {
   const orderId = Number(req.params.id);
 
   try {
-    // Get current order status
     const orders = await query("SELECT status FROM orders WHERE id = ?", [orderId]);
     if (!orders.length) return res.status(404).json({ error: "Order not found" });
 
     const prevStatus = orders[0].status;
 
-    // Nothing to do if status hasn't changed
     if (prevStatus === status)
       return res.json({ message: "Status unchanged" });
 
-    // Get order items
     const items = await query(
       "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
       [orderId]
     );
 
-    // ── Case 1: Marking as RECEIVED ───────────────────────────────────────────
-    // Increase stock for each item and log the movement
     if (status === "received" && prevStatus !== "received") {
       for (const item of items) {
         await query(
@@ -313,8 +332,6 @@ app.patch("/orders/:id/status", ...auth, async (req, res) => {
       }
     }
 
-    // ── Case 2: CANCELLING an already-received order ──────────────────────────
-    // Reverse the stock and log the reversal
     if (status === "cancelled" && prevStatus === "received") {
       for (const item of items) {
         await query(
@@ -330,9 +347,7 @@ app.patch("/orders/:id/status", ...auth, async (req, res) => {
       }
     }
 
-    // Update the order status
     await query("UPDATE orders SET status = ? WHERE id = ?", [status, orderId]);
-
     res.json({ message: `Order status updated to ${status}` });
   } catch (err) {
     console.error(err);
@@ -350,7 +365,6 @@ app.delete("/orders/:id", ...auth, async (req, res) => {
 
 // ─── Stock Movements ──────────────────────────────────────────────────────────
 
-// Get all movements — optionally filter by product_id via ?product_id=X
 app.get("/stock-movements", ...auth, async (req, res) => {
   try {
     const { product_id } = req.query;
@@ -369,7 +383,6 @@ app.get("/stock-movements", ...auth, async (req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
-// Manual stock adjustment (e.g. damage, correction)
 app.post("/stock-movements", ...auth, async (req, res) => {
   const { product_id, type, quantity, reason } = req.body;
   if (!product_id || !type || !quantity)
@@ -377,7 +390,6 @@ app.post("/stock-movements", ...auth, async (req, res) => {
   if (!["in", "out"].includes(type))
     return res.status(400).json({ error: "type must be 'in' or 'out'" });
   try {
-    // Check product exists
     const products = await query("SELECT id, quantity FROM products WHERE id = ?", [product_id]);
     if (!products.length) return res.status(404).json({ error: "Product not found" });
 
@@ -396,6 +408,219 @@ app.post("/stock-movements", ...auth, async (req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+// ─── AI Engine ────────────────────────────────────────────────────────────────
+
+// GET /ai/analytics (Stays the same - pure SQL logic)
+app.get("/ai/analytics", ...auth, async (req, res) => {
+  try {
+    const topProducts = await query(`
+      SELECT p.name, SUM(oi.quantity) AS total_ordered,
+             COUNT(DISTINCT oi.order_id) AS order_count,
+             c.name AS category
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND o.status = 'received'
+      GROUP BY p.id, p.name, c.name
+      ORDER BY total_ordered DESC
+      LIMIT 10
+    `);
+
+    const trendData = await query(`
+      SELECT p.name,
+        SUM(CASE WHEN o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 THEN oi.quantity ELSE 0 END) AS recent_30,
+        SUM(CASE WHEN o.order_date < DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 THEN oi.quantity ELSE 0 END) AS prev_30
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND o.status = 'received'
+      GROUP BY p.id, p.name
+      HAVING recent_30 > 0 OR prev_30 > 0
+      ORDER BY (recent_30 - prev_30) DESC
+    `);
+
+    const stockRisk = await query(`
+      SELECT p.name, p.quantity AS current_stock,
+             ROUND(SUM(oi.quantity) / 8, 1) AS avg_weekly_demand,
+             c.name AS category
+      FROM products p
+      JOIN order_items oi ON oi.product_id = p.id
+      JOIN orders o ON oi.order_id = o.id
+      JOIN categories c ON p.category_id = c.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND o.status = 'received'
+      GROUP BY p.id, p.name, p.quantity, c.name
+      HAVING p.quantity < (avg_weekly_demand * 2)
+      ORDER BY (p.quantity / avg_weekly_demand) ASC
+      LIMIT 8
+    `);
+
+    const categoryVolume = await query(`
+      SELECT c.name AS category, SUM(oi.quantity) AS total_qty,
+             COUNT(DISTINCT o.id) AS order_count
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        AND o.status = 'received'
+      GROUP BY c.id, c.name
+      ORDER BY total_qty DESC
+    `);
+
+    const dailyVolume = await query(`
+      SELECT DATE(o.order_date) AS day, COUNT(*) AS order_count,
+             SUM(oi.quantity) AS total_qty
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+        AND o.status = 'received'
+      GROUP BY DATE(o.order_date)
+      ORDER BY day ASC
+    `);
+
+    res.json({ topProducts, trendData, stockRisk, categoryVolume, dailyVolume });
+  } catch (err) {
+    console.error("AI analytics error:", err);
+    res.status(500).json({ error: "Analytics query failed" });
+  }
+});
+
+// POST /ai/predict — UPDATED FOR GROQ AI
+app.post("/ai/predict", ...auth, async (req, res) => {
+  try {
+    const topProducts = await query(`
+      SELECT p.name, SUM(oi.quantity) AS total_ordered, c.name AS category
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND o.status = 'received'
+      GROUP BY p.id, p.name, c.name
+      ORDER BY total_ordered DESC
+    `);
+
+    const trendData = await query(`
+      SELECT p.name,
+        SUM(CASE WHEN o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 THEN oi.quantity ELSE 0 END) AS recent_30,
+        SUM(CASE WHEN o.order_date < DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 THEN oi.quantity ELSE 0 END) AS prev_30,
+        p.quantity AS current_stock
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND o.status = 'received'
+      GROUP BY p.id, p.name, p.quantity
+    `);
+
+    const stockRisk = await query(`
+      SELECT p.name, p.quantity AS current_stock,
+             ROUND(SUM(oi.quantity) / 8, 1) AS avg_weekly_demand
+      FROM products p
+      JOIN order_items oi ON oi.product_id = p.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND o.status = 'received'
+      GROUP BY p.id, p.name, p.quantity
+      HAVING p.quantity < (avg_weekly_demand * 2)
+      ORDER BY (p.quantity / avg_weekly_demand) ASC
+    `);
+
+    const prompt = `
+Analyze the following warehouse sales data and provide actionable predictions.
+
+## TOP PRODUCTS BY VOLUME (last 60 days)
+${topProducts.map(p => `- ${p.name} (${p.category}): ${p.total_ordered} units ordered`).join("\n")}
+
+## DEMAND TRENDS (last 30 days vs previous 30 days)
+${trendData.map(p => {
+  const change = p.recent_30 - p.prev_30;
+  const pct = p.prev_30 > 0 ? ((change / p.prev_30) * 100).toFixed(1) : "N/A";
+  const direction = change > 0 ? "UP" : change < 0 ? "DOWN" : "STABLE";
+  return `- ${p.name}: ${direction} ${Math.abs(change)} units (${pct}%) | Stock: ${p.current_stock}`;
+}).join("\n")}
+
+## LOW STOCK RISK PRODUCTS
+${stockRisk.map(p => `- ${p.name}: ${p.current_stock} units in stock, avg weekly demand: ${p.avg_weekly_demand} units`).join("\n")}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "predictions": [
+    {
+      "product": "product name",
+      "action": "restock",
+      "priority": "high",
+      "reason": "brief reason max 15 words",
+      "suggested_quantity": 100
+    }
+  ],
+  "trending_up": ["product name"],
+  "trending_down": ["product name"],
+  "summary": "2-sentence overall warehouse health summary",
+  "restock_urgency": "high"
+}
+    `.trim();
+
+    const aiResponse = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json" 
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are a warehouse analyst. Respond ONLY with valid JSON." },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("Groq API error:", errText);
+      return res.status(502).json({ error: "AI service unavailable" });
+    }
+
+    const aiData  = await aiResponse.json();
+    const parsed  = JSON.parse(aiData.choices[0].message.content);
+
+    res.json({ ...parsed, generated_at: new Date().toISOString() });
+  } catch (err) {
+    console.error("AI predict error:", err);
+    res.status(500).json({ error: "Prediction failed", detail: err.message });
+  }
+});
+
+// GET /ai/product-trend/:id (Day-by-day volume)
+app.get("/ai/product-trend/:id", ...auth, async (req, res) => {
+  try {
+    const rows = await query(`
+      SELECT DATE(o.order_date) AS day, SUM(oi.quantity) AS qty
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE oi.product_id = ?
+        AND o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        AND o.status = 'received'
+      GROUP BY DATE(o.order_date)
+      ORDER BY day ASC
+    `, [req.params.id]);
+    res.json(rows);
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-app.listen(3000, () => console.log("Server started on port 3000"));
+app.listen(3000, () => console.log("Server started on port 3000 (Using Groq AI)"));
